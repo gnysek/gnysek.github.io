@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Piotr 'gnysek' Gnys - GameMaker Studio examples</title>
+    <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.7/darkly/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+
+    <style>
+
+        pre {
+            margin-left: 30px;
+            font-size: 80%;
+            max-width: 600px;
+        }
+
+        pre strong {
+            color: darkorange;
+        }
+    </style>
+</head>
+<body style="padding: 50px 0;">
+<div class="container">
+
+    <h1>Foreach for GMS2 docs</h1>
+
+    <p><strong>List of contents:</strong></p>
+    <ul>
+        <li><a href="#general">General idea</a></li>
+        <li><a href="#each"><kbd>each(<em>variable</em>, <em>type</em>)</kbd></a></li>
+        <li><a href="#as"><kbd>as()</kbd>, <kbd>as(key, value)</kbd></a></li>
+        <li><a href="#iterate"><kbd>iterate()</kbd></a></li>
+        <li><a href="#key"><kbd>_key()</kbd></a></li>
+        <li><a href="#val"><kbd>_val()</kbd></a></li>
+        <li><a href="#priority"><kbd>foreach_priority_low_as_first(bool)</kbd></a></li>
+        <li><a href="#nesting">Nesting</a></li>
+        <li><a href="#def"><kbd>foreach_definition()</kbd></a></li>
+    </ul>
+
+    <a name="general"></a>
+    <h3>General idea</h3>
+
+    <p>
+        This package allows you to mimic <kbd>foreach</kbd> directive from other programming languages, to get all
+        values in ds_xxx/array structure one ofter one, using
+        just <kbd>for</kbd> loop, without using any <kbd>ds_xxx_get()</kbd> functions in <strong>GameMaker Studio
+        2</strong>:
+    </p>
+
+    <pre>for (each(<em>variable</em>, <em>type</em>); as(); iterate()) {
+    show_debug_message(string(__key()) + ": " + string(__val()));
+}</pre>
+
+    <p>It takes advantages of how for-loop works against reading ds_xxx/array structures:</p>
+
+    <pre>for(a; b; c) {<br>    d;<br>}</pre>
+
+    <ol>
+        <li>first, statement <kbd>a</kbd> is <u>executed</u></li>
+        <li>statement <kbd>b</kbd> is <u>executed and result is checked</u>: if <em>true</em> - <kbd>d</kbd> is
+            executed; if <em>false</em>, loop finishes
+        </li>
+        <li>then statement <kbd>c</kbd> is <u>executed</u></li>
+        <li>&raquo; go back to step 2</li>
+    </ol>
+
+    <p>What most people forget about, is that <kbd>b</kbd> doesn't need to be an expression like <kbd>i &lt; 10</kbd>,
+        can just be a value, or return a value. So it can also be a script which returns 0/1.</p>
+
+    <p>Thanks to this, we can use scripts on for-loop syntax, as only middle one need to return something, and
+        first/last are just executed without any aftermath:</p>
+
+    <ul>
+        <li><kbd>each(<em>variable</em>, <em>type</em>)</kbd> - it assigns a value to global variable (or makes it copy
+            in case of stacks because of how they works, that's why we need to provide a type here), and remembers
+            current position in global variable as 0.
+        </li>
+        <li><kbd>as()</kbd> is executed. If current position is greater or equal (&gt;=) than size of choosen structure,
+            or it's empty, we <kbd>return 0;</kbd>, so it will finish loop. Otherwise, we're getting value at current
+            position if choosen structure, assigns key (position) to a global variable, and value to another global
+            variable. Then <kbd>return 1;</kbd> is returned at end.
+        </li>
+        <li><kbd>iterate()</kbd> - it enlarges global position value by 1 (and optionally removes from stack in case of
+            stack types).
+        </li>
+        <li>&raquo; go back to step 2</li>
+    </ul>
+
+    <p>It works with:</p>
+    <ul>
+        <li>Arrays</li>
+        <li>Maps</li>
+        <li>Lists</li>
+        <li>Stacks</li>
+        <li>Queues</li>
+        <li>Grids</li>
+        <li>Priority lists</li>
+    </ul>
+    <p>and can also be nested one into another.</p>
+
+    <p>In case of stacks, queues and priority lists, a copy of structure will be made, cause only way to get all
+        elements is to remove them at those ds_xxx structures.</p>
+    <p>A <code>ds_type_array</code> macro is defined in scripts, for better compatibility with other ds_type_xxx
+        variables. Remember it works only with this script int this case, as it's just a 0 value.</p>
+
+    <hr>
+    <h3>Functional documentation</h3>
+
+    <hr><a name="each"></a>
+    <h3><kbd>each(<em>variable</em>, <em>type</em>)</kbd></h3>
+    <p>First argument needs to be a variable keeping an array, or id of ds_xx structure. The second one need to be a one
+        of following types:</p>
+    <ul>
+        <li><kbd>ds_type_array</kbd> or <kbd>0</kbd></li>
+        <li><kbd>ds_type_map</kbd></li>
+        <li><kbd>ds_type_list</kbd></li>
+        <li><kbd>ds_type_stack</kbd></li>
+        <li><kbd>ds_type_queue</kbd></li>
+        <li><kbd>ds_type_grid</kbd></li>
+        <li><kbd>ds_type_priority</kbd></li>
+    </ul>
+
+    <p>example:</p>
+
+    <pre>var _array = [1, 2, 3, 4, 5];
+for(each(_array, ds_type_array); ....
+
+
+// or
+_dsm = ds_map_create();
+_dsm[? "a"] = 1;
+_dsm[? "b"] = 2;
+
+for(each(_dsm, ds_type_map); ....</pre>
+
+    <hr><a name="as"></a>
+    <h3><kbd>as()</kbd>, <kbd>as(key, value)</kbd></h3>
+
+    <p>
+        It get's current value at current position of choosen structure.<br>
+        If no arguments passed, current position/key can be get using <kbd>_key()</kbd> script and current value by
+        <kbd>_val()</kbd> functions.<br>
+        If key and value arguments are passed <u>as strings</u>, then key and value will be additionally asigneed to
+        those values of current instance (doesn't need to exists before).
+    </p>
+
+    <p>example:</p>
+
+    <pre>var _array = [5, 4, 3, 2, 1];
+for(each(_array, ds_type_array); <strong>as();</strong> iterate()) {
+    // _key() - returns 0, 1, 2...
+    // _val() - returns 5, 4, 3...
+}
+
+// or
+var _array = [5, 4, 3, 2, 1];
+var _sum = 0;
+for(each(_array, ds_type_array); <strong>as("position", "something");</strong> iterate()) {
+    // _key() / position - returns 0, 1, 2...
+    // _val() / something - returns 5, 4, 3...
+    _sum += something;
+}</pre>
+
+    <hr><a name="iterate"></a>
+    <h3><kbd>iterate()</kbd></h3>
+
+    <p>It just moves to next element or pops from copied stack.</p>
+
+    <hr><a name="key"></a>
+    <h3><kbd>_key()</kbd></h3>
+
+    <p>Returns current key. It will be a string in case of grids, in format <kbd>X,Y</kbd>.</p>
+
+    <hr><a name="val"></a>
+    <h3><kbd>_val()</kbd></h3>
+
+    <p>Returns current value, in same type at which it was originally im structure (real, string, array, undefined).</p>
+
+    <hr><a name="priority"></a>
+    <h3><kbd>foreach_priority_low_as_first(bool)</kbd></h3>
+
+    <p>Sets in what order priority loops should be returned. By default, on game start low priority (closer to 0) is
+        returned (so same as running this script with argument = 1).<br>It's remembered, so next foreach will use same
+        setting.</p>
+
+    <pre>var dsp = ds_priority_create();
+ds_priority_add(dsp, "a", 1);
+ds_priority_add(dsp, "b", 50);
+ds_priority_add(dsp, "c", 100);
+
+foreach_priority_low_as_first(1);
+for(each(dsp, ds_type_priority); as(); iterate()) {
+    // _key() - returns 1, 50, 100
+    // _val() - returns "a", "b", "c"
+}
+
+foreach_priority_low_as_first(0);
+for(each(dsp, ds_type_priority); as(); iterate()) {
+    // _key() - returns 100, 50, 1
+    // _val() - returns "b", "c", "a"
+}</pre>
+
+    <hr><a name="nesting"></a>
+    <h3>Nesting</h3>
+
+    <p>Since you can put arrays into arrays, or ds_xxx into another ds_xxx, this package was made to work with nested
+        structures. It automatically pushes structures into stacks, and garbage-collect values, so you can get back from
+        nested ones to previous one.</p>
+
+    <pre>var _array = [12, [5,10], [15,20], [30,40]];
+for(each(_array, ds_type_array); as(); iterate()) {
+    // _key() - returns 0, 1, 2, 3
+    // _val() - returns 12, [5, 10], [15, 20], [30, 40]
+    if (is_array(_val()) {
+        for(each(_val(), ds_type_array); as(); iterate()) {
+            // _key() - returns 0, 1 / 0, 1 / 0, 1
+            // _val() - returns 5, 10 / 15, 20 / 30, 50
+        }
+    }
+}</pre>
+
+
+    <hr><a name="def"></a>
+    <h3><kbd>foreach_definition()</kbd></h3>
+
+    <p>It defines all global variables needed internally by all other scripts (prefixed by _eachXXXXX). <u>You never
+        need to call this one anywhere</u>, as thanks to gml_pragma() it's automatically called before GameStart event.
+    </p>
+</div>
+</body>
